@@ -21,22 +21,27 @@ public class TimerCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 0) {
-            sender.sendMessage( "You need to specify arguments like start or pause.");
+            sender.sendMessage("You need to specify arguments like start or pause.");
             return true;
         }
 
         switch (args[0].toLowerCase()) {
             case "start":
+                if (args.length == 1) {
+                    timer.start(true);
+                    return true;
+                }
                 switch (args[1].toLowerCase()) {
                     case "forward":
                         timer.start(true);
                         break;
                     case "backward":
-                        timer.start(false)
+                        timer.start(false);
                         break;
                     default:
                         sender.sendMessage("Wrong mode. Only forward or backward supported.");
                         break;
+                }
                 break;
             case "pause":
                 timer.pause();
@@ -55,19 +60,21 @@ public class TimerCommand implements CommandExecutor, TabCompleter {
                         }
                         break;
                     case "bold":
-                        if(!timer.setDecoration("bold", args[2])) {
+                        if (!timer.setDecoration("bold", args[2])) {
                             sender.sendMessage("Specify boldness with true or false.");
-                        };
+                        }
+                        ;
                         break;
                     case "italic":
-                        if(!timer.setDecoration("italic", args[2])) {
+                        if (!timer.setDecoration("italic", args[2])) {
                             sender.sendMessage("Specify italicness with true or false.");
-                        };
+                        }
+                        ;
                         break;
                     case "underline":
-                        if(!timer.setDecoration("underline", args[2])) {
+                        if (!timer.setDecoration("underline", args[2])) {
                             sender.sendMessage("Specify whether to underline with true or false.");
-                        };
+                        }
                         break;
                     default:
                         sender.sendMessage("Unknown style setting.");
@@ -92,6 +99,7 @@ public class TimerCommand implements CommandExecutor, TabCompleter {
             default:
                 sender.sendMessage("Unknown argument.");
                 break;
+
         }
         return true;
     }

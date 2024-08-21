@@ -13,12 +13,12 @@ import org.jetbrains.annotations.NotNull;
 
 public class Timer {
     private final TimerGHG plugin;
-    private int seconds, minutes, hours, days, years;
+    private int seconds, minutes, hours, days, years, statusIndex;
     private String status;
     private Style style;
     private BukkitTask task;
-    private boolean running;
-    private boolean initialized;
+    private boolean running, initialized, forward;
+
     public Timer(TimerGHG plugin) {
         this.plugin = plugin;
         this.seconds = 0;
@@ -26,7 +26,8 @@ public class Timer {
         this.hours = 0;
         this.days = 0;
         this.years = 0;
-        this.status = "";
+        this.statusIndex = 0;
+        setStatus(0);
         this.running = false;
         this.initialized = false;
         this.style = Style.style(TextDecoration.BOLD, TextColor.color(255, 255, 255));
@@ -34,38 +35,44 @@ public class Timer {
 
     public void start(boolean isForward) {
         running = true;
-        status = "";
+        setStatus(0);
+        forward = isForward;
+        if (!forward && isZero()) setTimer(0, 0, 1, 0, 0, 0);
         updateActionBar();
 
         if (initialized) return;
         task = new BukkitRunnable() {
             @Override
             public void run() {
-                if (running) {
-                    timerTick(isForward);
+                if (running && statusIndex != 3) {
+                    timerTick();
                 }
                 updateActionBar();
-                //Bukkit.getLogger().info("Running.");
             }
-        }.runTaskTimer(plugin, 0, 20);
+        }.runTaskTimer(plugin, 20, 20);
         initialized = true;
     }
 
     public void pause() {
         running = false;
-        status = "(paused)";
+        setStatus(1);
         updateActionBar();
     }
 
     public void stop() {
         running = false;
-        status = "(stopped)";
+        if (isZero()) {
+            setStatus(3);
+        } else {
+            setStatus(2);
+        }
         updateActionBar();
     }
 
     public void reset() {
         running = false;
         initialized = false;
+        setStatus(0);
         seconds = 0;
         minutes = 0;
         hours = 0;
@@ -77,6 +84,85 @@ public class Timer {
             task = null;
         }
         updateActionBar();
+    }
+
+    public boolean set(String[] times) {
+        return evaluateSetCommand(times, 0);
+    }
+
+    public boolean add(String[] times) {
+        return evaluateSetCommand(times, 1);
+    }
+
+    public boolean subtract(String[] times) {
+        return evaluateSetCommand(times, 2);
+    }
+
+    private boolean evaluateSetCommand(String[] times, int mode) {
+        int y, d, h, m, s;
+        y = d = h = m = s = 0;
+        for (String time : times) {
+            int number;
+            String numberString = time.substring(0, time.length() - 1);
+            if (numberString.matches("[0-9]+")) {
+                number = Integer.parseInt(numberString);
+            } else { return false; }
+            switch (time.charAt(time.length() - 1)) {
+                case 'y':
+                    y = number;
+                    break;
+                case 'd':
+                    d = number;
+                    break;
+                case 'h':
+                    h = number;
+                    break;
+                case 'm':
+                    m = number;
+                    break;
+                case 's':
+                    s = number;
+                    break;
+                default:
+                    return false;
+            }
+        }
+        return setTimer(y, d, h, m, s, mode);
+    }
+
+    private boolean setTimer(int y, int d, int h, int m, int s, int mode) {
+        try {
+            long totalSeconds = seconds + 60 * (minutes + 60 * (hours + 24 * (days + 365L * years)));
+            long tempSeconds = s + 60 * (m + 60 * (h + 24 * (d + 365L * y)));
+            switch (mode) {
+                case 0:
+                    totalSeconds = tempSeconds;
+                    break;
+                case 1:
+                    totalSeconds += tempSeconds;
+                    break;
+                case 2:
+                    totalSeconds -= tempSeconds;
+                    break;
+            }
+            if (totalSeconds <= 0) {
+                years = days = hours = minutes = seconds = 0;
+            } else {
+                years = (int) (totalSeconds / 31536000);
+                totalSeconds %= 31536000;
+                days = (int) (totalSeconds / 86400);
+                totalSeconds %= 86400;
+                hours = (int) (totalSeconds / 3600);
+                totalSeconds %= 3600;
+                minutes = (int) (totalSeconds / 60);
+                totalSeconds %= 60;
+                seconds = (int) totalSeconds;
+            }
+        } catch(NumberFormatException e) {
+            return false;
+        }
+        updateActionBar();
+        return true;
     }
 
     public boolean setColor(String colorString) {
@@ -192,128 +278,85 @@ public class Timer {
         return true;
     }
 
-    public boolean set(String[] times) {
-        return evaluateSetCommand(times, 0);
-    }
+    /* ------------------------------------ */
 
-    public boolean add(String[] times) {
-        return evaluateSetCommand(times, 1);
-    }
-
-    public boolean subtract(String[] times) {
-        return evaluateSetCommand(times, 2);
-    }
-
-    private boolean evaluateSetCommand(String[] times, int mode) {
-        int y, d, h, m, s;
-        y = d = h = m = s = 0;
-        for (String time : times) {
-            int number;
-            String numberString = time.substring(0, time.length() - 1);
-            if (numberString.matches("[0-9]+")) {
-                number = Integer.parseInt(numberString);
-            } else { return false; }
-            switch (time.charAt(time.length() - 1)) {
-                case 'y':
-                    y = number;
-                    break;
-                case 'd':
-                    d = number;
-                    break;
-                case 'h':
-                    h = number;
-                    break;
-                case 'm':
-                    m = number;
-                    break;
-                case 's':
-                    s = number;
-                    break;
-                default:
-                    return false;
-            }
-        }
-        return setTimer(y, d, h, m, s, mode);
-    }
-    private boolean setTimer(int y, int d, int h, int m, int s, int mode) {
-        try {
-            long totalSeconds = seconds + 60 * (minutes + 60 * (hours + 24 * (days + 365L * years)));
-            long tempSeconds = s + 60 * (m + 60 * (h + 24 * (d + 365L * y)));
-            switch (mode) {
-                case 0:
-                    totalSeconds = tempSeconds;
-                    break;
-                case 1:
-                    totalSeconds += tempSeconds;
-                    break;
-                case 2:
-                    totalSeconds -= tempSeconds;
-                    break;
-            }
-            if (totalSeconds <= 0) {
-                years = days = hours = minutes = seconds = 0;
-            } else {
-                years = (int) (totalSeconds / 31536000);
-                totalSeconds %= 31536000;
-                days = (int) (totalSeconds / 86400);
-                totalSeconds %= 86400;
-                hours = (int) (totalSeconds / 3600);
-                totalSeconds %= 3600;
-                minutes = (int) (totalSeconds / 60);
-                totalSeconds %= 60;
-                seconds = (int) totalSeconds;
-            }
-        } catch(NumberFormatException e) {
-            return false;
-        }
-        updateActionBar();
-        return true;
-    }
-
-    private void timerTick(boolean isForward) {
-        if (isForward) {
-            if (seconds == 60) {
+    private void timerTick() {
+        if (forward) {
+            if (seconds < 59) {
                 seconds++;
+                return;
             } else {
                 seconds = 0;
-                minutes ++;
+                minutes++;
             }
             if (minutes == 60) {
                 minutes = 0;
                 hours++;
+            } else {
+                return;
             }
             if (hours == 24) {
                 hours = 0;
                 days++;
+            } else {
+                return;
             }
             if (days == 365) {
                 days = 0;
                 years++;
             }
         } else {
-            if (seconds == 0) {
-                seconds = 59;
-                minutes--;
-            } else {
+            if (seconds > 0) {
                 seconds--;
-            }
-            if (minutes == 0) {
-                minutes = 59;
-                hours--;
-            }
-            if (hours == 0) {
-                hours = 23;
-                days--;
-            }
-            if (days == 0) {
-                days = 365;
-                years--;
-                if (years == 0) {
-                    this.stop();
+            } else {
+                seconds = 59;
+                if (minutes > 0) {
+                    minutes--;
+                } else {
+                    minutes = 59;
+                    if (hours > 0) {
+                        hours--;
+                    } else {
+                        hours = 23;
+                        if (days > 0) {
+                            days--;
+                        } else {
+                            days = 364;
+                            if (years > 0) {
+                                years--;
+                            } else {
+                                seconds = minutes = hours = days = years = 0;
+                                stop();
+                            }
+                        }
+                    }
                 }
             }
         }
+    }
 
+    public boolean isZero() {
+        return seconds == 0 && minutes == 0 && hours == 0 && days == 0 && years == 0;
+    }
+
+    private void setStatus(int index) {
+        switch (index) {
+            case 0:
+                status = "";
+                break;
+            case 1:
+                status = "(paused)";
+                break;
+            case 2:
+                status = "(stopped)";
+                break;
+            case 3:
+                status = "Time has run out!";
+                break;
+            default:
+                return;
+        }
+        statusIndex = index;
     }
 
     private void updateActionBar() {
