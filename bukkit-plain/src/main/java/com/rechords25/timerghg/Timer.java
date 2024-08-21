@@ -26,7 +26,6 @@ public class Timer {
         this.hours = 0;
         this.days = 0;
         this.years = 0;
-        this.statusIndex = 0;
         setStatus(0);
         this.running = false;
         this.initialized = false;
@@ -34,20 +33,18 @@ public class Timer {
     }
 
     public void start(boolean isForward) {
-        running = true;
-        setStatus(0);
         forward = isForward;
         if (!forward && isZero()) setTimer(0, 0, 1, 0, 0, 0);
-        updateActionBar();
+        if (statusIndex == 0 || statusIndex == 1) setStatus(0);
 
         if (initialized) return;
         task = new BukkitRunnable() {
             @Override
             public void run() {
-                if (running && statusIndex != 3) {
-                    timerTick();
-                }
-                updateActionBar();
+            if (running && statusIndex != 2 && statusIndex != 3) {
+                timerTick();
+            }
+            updateActionBar();
             }
         }.runTaskTimer(plugin, 20, 20);
         initialized = true;
@@ -56,28 +53,21 @@ public class Timer {
     public void pause() {
         running = false;
         setStatus(1);
-        updateActionBar();
     }
 
     public void stop() {
-        running = false;
         if (isZero()) {
             setStatus(3);
         } else {
             setStatus(2);
         }
-        updateActionBar();
     }
 
     public void reset() {
+        setStatus(-1);
+        setZero();
         running = false;
         initialized = false;
-        setStatus(0);
-        seconds = 0;
-        minutes = 0;
-        hours = 0;
-        days = 0;
-        years = 0;
         style = Style.style(TextDecoration.BOLD, TextColor.color(255, 255, 255));
         if (task != null) {
             task.cancel();
@@ -146,7 +136,7 @@ public class Timer {
                     break;
             }
             if (totalSeconds <= 0) {
-                years = days = hours = minutes = seconds = 0;
+                setZero();
             } else {
                 years = (int) (totalSeconds / 31536000);
                 totalSeconds %= 31536000;
@@ -306,6 +296,13 @@ public class Timer {
                 years++;
             }
         } else {
+            seconds--;
+            if (isZero()) {
+                setZero();
+                stop();
+                return;
+            }
+            seconds++;
             if (seconds > 0) {
                 seconds--;
             } else {
@@ -325,7 +322,7 @@ public class Timer {
                             if (years > 0) {
                                 years--;
                             } else {
-                                seconds = minutes = hours = days = years = 0;
+                                setZero();
                                 stop();
                             }
                         }
@@ -338,29 +335,38 @@ public class Timer {
     public boolean isZero() {
         return seconds == 0 && minutes == 0 && hours == 0 && days == 0 && years == 0;
     }
+    private void setZero() {
+        seconds = minutes = hours = days = years = 0;
+    }
 
     private void setStatus(int index) {
         switch (index) {
             case 0:
                 status = "";
+                running = true;
                 break;
             case 1:
                 status = "(paused)";
+                running = false;
                 break;
             case 2:
                 status = "(stopped)";
+                running = false;
                 break;
             case 3:
                 status = "Time has run out!";
+                running = false;
                 break;
             default:
+                status = "";
                 return;
         }
         statusIndex = index;
+        updateActionBar();
     }
 
     private void updateActionBar() {
-        String message = getTimeString();
+        String message = getTime();
         for (Player player : Bukkit.getOnlinePlayers()) {
             Audience audience = plugin.getServer().getPlayer(player.getUniqueId());
             assert audience != null;
@@ -369,29 +375,29 @@ public class Timer {
     }
 
     @NotNull
-    private String getTimeString() {
-        String timeString = "";
+    private String getTime() {
+        String time = "";
         if (years > 0) {
-            timeString += String.valueOf(years);
-            timeString += "y ";
+            time += String.valueOf(years);
+            time += "y ";
         }
         if (days > 0) {
-            timeString += String.valueOf(days);
-            timeString += "d ";
+            time += String.valueOf(days);
+            time += "d ";
         }
         if (hours > 0) {
-            timeString += String.valueOf(hours);
-            timeString += "h ";
+            time += String.valueOf(hours);
+            time += "h ";
         }
         if (minutes > 0) {
-            timeString += String.valueOf(minutes);
-            timeString += "m ";
+            time += String.valueOf(minutes);
+            time += "m ";
         }
-        if (seconds > 0) {
-            timeString += String.valueOf(seconds);
-            timeString += "s ";
+        if (running || seconds > 0) {
+            time += String.valueOf(seconds);
+            time += "s ";
         }
-        timeString += status;
-        return timeString;
+        time += status;
+        return time;
     }
 }
