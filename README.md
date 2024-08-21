@@ -11,7 +11,7 @@ Or download the source code as zip file [here](https://github.com/reChords25/Tim
 ## Setup
 **The following guide only works for IntelliJ IDEA. If you are using another Java IDE, the steps may vary.**  
 
-Open the downloaded folder or the ``build.gradle`` in IntelliJ.
+Open the downloaded folder or the ``build.gradle`` in IntelliJ. ***(currently only the bukkit-plain version works!)***
 
 If, once the automatic gradle setup process has completed, IntelliJ tells you that it cannot resolve dependencies, make sure that your Gradle Java version is the same as the ``targetJavaVersion`` in the ``build.gradle`` file.  
 If not, open the Gradle settings and set the right Java version. Then make Gradle reconfigure itself.
