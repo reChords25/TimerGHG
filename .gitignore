@@ -1,5 +1,6 @@
 .gradle
 .idea
+bin
 run
 **/build/
 !src/**/build/

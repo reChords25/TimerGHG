@@ -34,7 +34,7 @@ public class Timer {
 
     public void start(boolean isForward) {
         forward = isForward;
-        if (!forward && isZero()) setTimer(0, 0, 1, 0, 0, 0);
+        if (!forward && isZero()) setTime(0, 0, 1, 0, 0, "set");
         if (statusIndex == 0 || statusIndex == 1) setStatus(0);
 
         if (initialized) return;
@@ -76,86 +76,63 @@ public class Timer {
         updateActionBar();
     }
 
-    public boolean set(String[] times) {
-        return evaluateSetCommand(times, 0);
-    }
-
-    public boolean add(String[] times) {
-        return evaluateSetCommand(times, 1);
-    }
-
-    public boolean subtract(String[] times) {
-        return evaluateSetCommand(times, 2);
-    }
-
-    private boolean evaluateSetCommand(String[] times, int mode) {
+    public void editTime(String mode, String[] times) {
         int y, d, h, m, s;
         y = d = h = m = s = 0;
         for (String time : times) {
-            int number;
-            String numberString = time.substring(0, time.length() - 1);
-            if (numberString.matches("[0-9]+")) {
-                number = Integer.parseInt(numberString);
-            } else { return false; }
+            int number = Integer.parseInt(time.substring(0, time.length() - 1));
             switch (time.charAt(time.length() - 1)) {
                 case 'y':
-                    y = number;
+                    y += number;
                     break;
                 case 'd':
-                    d = number;
+                    d += number;
                     break;
                 case 'h':
-                    h = number;
+                    h += number;
                     break;
                 case 'm':
-                    m = number;
+                    m += number;
                     break;
                 case 's':
-                    s = number;
+                    s += number;
                     break;
-                default:
-                    return false;
             }
         }
-        return setTimer(y, d, h, m, s, mode);
+        setTime(y, d, h, m, s, mode);
     }
 
-    private boolean setTimer(int y, int d, int h, int m, int s, int mode) {
-        try {
-            long totalSeconds = seconds + 60 * (minutes + 60 * (hours + 24 * (days + 365L * years)));
-            long tempSeconds = s + 60 * (m + 60 * (h + 24 * (d + 365L * y)));
-            switch (mode) {
-                case 0:
-                    totalSeconds = tempSeconds;
-                    break;
-                case 1:
-                    totalSeconds += tempSeconds;
-                    break;
-                case 2:
-                    totalSeconds -= tempSeconds;
-                    break;
-            }
-            if (totalSeconds <= 0) {
-                setZero();
-            } else {
-                years = (int) (totalSeconds / 31536000);
-                totalSeconds %= 31536000;
-                days = (int) (totalSeconds / 86400);
-                totalSeconds %= 86400;
-                hours = (int) (totalSeconds / 3600);
-                totalSeconds %= 3600;
-                minutes = (int) (totalSeconds / 60);
-                totalSeconds %= 60;
-                seconds = (int) totalSeconds;
-            }
-        } catch(NumberFormatException e) {
-            return false;
+    private void setTime(int y, int d, int h, int m, int s, String mode) {
+        long totalSeconds = seconds + 60 * (minutes + 60 * (hours + 24 * (days + 365L * years)));
+        long tempSeconds = s + 60 * (m + 60 * (h + 24 * (d + 365L * y)));
+        switch (mode) {
+            case "set":
+                totalSeconds = tempSeconds;
+                break;
+            case "add":
+                totalSeconds += tempSeconds;
+                break;
+            case "subtract":
+                totalSeconds -= tempSeconds;
+                break;
         }
-        updateActionBar();
-        return true;
+        if (totalSeconds <= 0) {
+            setZero();
+        } else {
+            years = (int) (totalSeconds / 31536000);
+            totalSeconds %= 31536000;
+            days = (int) (totalSeconds / 86400);
+            totalSeconds %= 86400;
+            hours = (int) (totalSeconds / 3600);
+            totalSeconds %= 3600;
+            minutes = (int) (totalSeconds / 60);
+            totalSeconds %= 60;
+            seconds = (int) totalSeconds;
+        }
+        if(running) updateActionBar();
     }
 
-    public boolean setColor(String colorString) {
+    public void setColor(String colorString) {
         int red, blue, green;
         switch (colorString) {
             case "black":
@@ -163,12 +140,12 @@ public class Timer {
                 green = 0;
                 blue = 0;
                 break;
-            case "dark_grey":
+            case "dark_gray":
                 red = 85;
                 green = 85;
                 blue = 85;
                 break;
-            case "grey":
+            case "gray":
                 red = 170;
                 green = 170;
                 blue = 170;
@@ -190,6 +167,11 @@ public class Timer {
                 break;
             case "yellow":
                 red = 255;
+                green = 255;
+                blue = 85;
+                break;
+            case "green":
+                red = 85;
                 green = 255;
                 blue = 85;
                 break;
@@ -234,23 +216,15 @@ public class Timer {
                 blue = 255;
                 break;
             default:
-                if (colorString.length() != 7) return false;
                 red = Integer.parseInt(colorString.substring(1,3), 16);
                 green = Integer.parseInt(colorString.substring(3,5), 16);
                 blue = Integer.parseInt(colorString.substring(5,7), 16);
         }
         style = style.toBuilder().color(TextColor.color(red, green, blue)).build();
         updateActionBar();
-        return true;
     }
 
-    public boolean setDecoration(String formatType, String s) {
-        boolean value;
-        if (s.equalsIgnoreCase("true")) {
-            value = true;
-        } else if (s.equalsIgnoreCase("false")) {
-            value = false;
-        } else { return false; }
+    public void setDecoration(String formatType, boolean value) {
         switch (formatType) {
             case "bold":
                 style = style.toBuilder().decoration(TextDecoration.BOLD, value).build();
@@ -262,10 +236,9 @@ public class Timer {
                 style = style.toBuilder().decoration(TextDecoration.UNDERLINED, value).build();
                 break;
             default:
-                return false;
+                return;
         }
         updateActionBar();
-        return true;
     }
 
     /* ------------------------------------ */
@@ -335,6 +308,7 @@ public class Timer {
     public boolean isZero() {
         return seconds == 0 && minutes == 0 && hours == 0 && days == 0 && years == 0;
     }
+    
     private void setZero() {
         seconds = minutes = hours = days = years = 0;
     }

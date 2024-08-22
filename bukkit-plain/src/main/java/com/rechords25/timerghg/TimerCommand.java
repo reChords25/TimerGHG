@@ -20,18 +20,25 @@ public class TimerCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        if (args.length == 0) {
-            sender.sendMessage("You need to specify arguments like start or pause.");
-            return true;
+        if (args.length > 10) {
+            sender.sendMessage("Too many arguments.");
+            return false;
         }
-
-        switch (args[0].toLowerCase()) {
-            case "start":
-                if (args.length == 1) {
-                    timer.start(true);
-                    return true;
-                }
-                switch (args[1].toLowerCase()) {
+        String arg1 = args.length > 0 ? args[0].toLowerCase() : "";
+        String arg2 = args.length > 1 ? args[1].toLowerCase() : "";
+        String arg3 = args.length > 2 ? args[2].toLowerCase() : "";
+        if (arg1.isEmpty()) {
+            sender.sendMessage("You need to specify arguments like start or pause.");
+            return false;
+        } else if (!Arrays.asList("start", "pause", "stop", "reset", "style", "set", "add", "subtract").contains(arg1)) {
+            sender.sendMessage("Unknown argument. Specify arguments like start or pause.");
+            return false;
+        }
+        if (arg1.equals("start")) {
+            if (arg2.isEmpty()) {
+                timer.start(true);
+            } else {
+                switch (arg2) {
                     case "forward":
                         timer.start(true);
                         break;
@@ -39,67 +46,63 @@ public class TimerCommand implements CommandExecutor, TabCompleter {
                         timer.start(false);
                         break;
                     default:
-                        sender.sendMessage("Wrong mode. Only forward or backward supported.");
-                        break;
+                        sender.sendMessage("Unknown argument. Enter forward or backward.");
                 }
-                break;
-            case "pause":
-                timer.pause();
-                break;
-            case "stop":
-                timer.stop();
-                break;
-            case "reset":
-                timer.reset();
-                break;
-            case "style":
-                switch (args[1].toLowerCase()) {
-                    case "color":
-                        if (!timer.setColor(args[2])) {
-                            sender.sendMessage("Unknown color. Use suggested colors or hex code like #FFFFFF.");
-                        }
-                        break;
-                    case "bold":
-                        if (!timer.setDecoration("bold", args[2])) {
-                            sender.sendMessage("Specify boldness with true or false.");
-                        }
-                        ;
-                        break;
-                    case "italic":
-                        if (!timer.setDecoration("italic", args[2])) {
-                            sender.sendMessage("Specify italicness with true or false.");
-                        }
-                        ;
-                        break;
-                    case "underline":
-                        if (!timer.setDecoration("underline", args[2])) {
-                            sender.sendMessage("Specify whether to underline with true or false.");
-                        }
-                        break;
-                    default:
-                        sender.sendMessage("Unknown style setting.");
-                        break;
+            }
+        } else if (arg1.equals("pause")) {
+            timer.pause();
+        } else if (arg1.equals("stop")) {
+            timer.stop();
+        } else if (arg1.equals("reset")) {
+            timer.reset();
+        } else if (arg1.equals("style")) {
+            if (arg2.isEmpty()) {
+                sender.sendMessage("You need to specify which style to edit and name a value.");
+                return false;
+            } else if (arg2.equals("color")) {
+                if (arg3.isEmpty()) {
+                    sender.sendMessage("You need to specify a color as hex code or Minecraft color name.");
+                    return false;
+                } else if (!Arrays.asList(
+                        "black", "dark_gray", "gray",
+                        "white", "red", "gold",
+                        "yellow", "aqua", "blue",
+                        "dark_red", "dark_green", "dark_blue",
+                        "dark_aqua", "dark_purple", "light_purple"
+                ).contains(arg3) && arg3.matches("^#([0-9A-Fa-f]{6})$")) {
+                    sender.sendMessage(String.format("\"%s\" is not a known color.", arg3));
+                    return false;
+                } else {
+                    timer.setColor(arg3);
                 }
-                break;
-            case "set":
-                if (!timer.set(Arrays.copyOfRange(args, 1, args.length))) {
-                    sender.sendMessage("Wrong argument(s). Enter desired time in timer format and keep it small enough.");
-                }
-                break;
-            case "add":
-                if (!timer.add(Arrays.copyOfRange(args, 1, args.length))) {
-                    sender.sendMessage("Wrong argument(s). Enter desired time in timer format and keep it small enough.");
-                }
-                break;
-            case "subtract":
-                if (!timer.subtract(Arrays.copyOfRange(args, 1, args.length))) {
-                    sender.sendMessage("Wrong argument(s). Enter desired time in timer format and keep it small enough.");
-                }
-                break;
-            default:
-                sender.sendMessage("Unknown argument.");
-                break;
 
+            } else if (Arrays.asList("bold", "underline", "italic").contains(arg2)) {
+                if (arg3.isEmpty()) {
+                    sender.sendMessage("You need to specify which style to edit and name a value.");
+                    return false;
+                } else if (arg3.equals("false")) {
+                    timer.setDecoration(arg3, false);
+                } else if (arg3.equals("true")) {
+                    timer.setDecoration(arg3, true);
+                } else {
+                    sender.sendMessage("You have to set a value (true or false).");
+                    return false;
+                }
+            } else {
+                sender.sendMessage("Unknown style setting.");
+            }
+        } else if (Arrays.asList("set", "add", "subtract").contains(arg1)) {
+            if (arg2.isEmpty()) {
+                sender.sendMessage("You have to enter a time like \"1h 30m\".");
+                return false;
+            }
+            for (String timeArg : Arrays.copyOfRange(args, 1, args.length)) {
+                if (!timeArg.matches("^[0-9]+[smhdy]$")) {
+                    sender.sendMessage(String.format("\"%s\" is not a valid time setting.", timeArg));
+                    return false;
+                }
+            }
+            timer.editTime(arg1, Arrays.copyOfRange(args, 1, args.length));
         }
         return true;
     }
@@ -131,7 +134,7 @@ public class TimerCommand implements CommandExecutor, TabCompleter {
         } else if (args.length == 3) {
             if (args[1].equalsIgnoreCase("color")) {
                 List<String> colorArgs = Arrays.asList(
-                        "black", "dark_grey", "gray", "white", "red", "gold", "yellow", "green",
+                        "black", "dark_gray", "gray", "white", "red", "gold", "yellow", "green",
                         "aqua", "blue", "dark_red", "dark_green", "dark_blue", "dark_aqua",
                         "dark_purple", "light_purple", "#"
                 );
