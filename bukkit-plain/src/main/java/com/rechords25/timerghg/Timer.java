@@ -1,60 +1,69 @@
 package com.rechords25.timerghg;
 
-import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.Style;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
-import org.bukkit.entity.Player;
+import net.kyori.adventure.audience.Audience;
+
 import org.bukkit.Bukkit;
-import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
-import org.jetbrains.annotations.NotNull;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.configuration.file.FileConfiguration;
+
 
 public class Timer {
+    // Plugin reference
     private final TimerGHG plugin;
+
+    // Time and status for the action bar
     private int seconds, minutes, hours, days, years, statusIndex;
     private String status;
-    private Style style;
-    private BukkitTask task;
-    private boolean running, initialized, forward;
 
+    // Style for the action bar, containing color and formatting like boldness
+    private Style style;
+
+    // Timer task which runs every 20 ticks, so one second, currently synchronized
+    private BukkitTask task;
+
+    // Timer properties determining its behavior
+    private boolean running, initialized, upward;
+
+    /**
+     * Constructor for a Timer object
+     *
+     * @param plugin the parent plugin of type {@link TimerGHG}
+     */
     public Timer(TimerGHG plugin) {
         this.plugin = plugin;
-        this.seconds = 0;
-        this.minutes = 0;
-        this.hours = 0;
-        this.days = 0;
-        this.years = 0;
-        setStatus(0);
-        this.running = false;
-        this.initialized = false;
-        this.style = Style.style(TextDecoration.BOLD, TextColor.color(255, 255, 255));
+        this.style = Style.empty();
     }
 
-    public void start(boolean isForward) {
-        forward = isForward;
-        if (!forward && isZero()) setTime(0, 0, 1, 0, 0, "set");
+    /**
+     * Starts the timer both technically and visually
+     *
+     * @param isUpward whether the timer should run 
+     */
+    public void start(boolean isUpward) {
+        upward = isUpward;
+        if (!upward && isZero()) setTime(0, 0, 1, 0, 0, "set");
         if (statusIndex == 0 || statusIndex == 1) setStatus(0);
-
-        if (initialized) return;
-        task = new BukkitRunnable() {
-            @Override
-            public void run() {
-            if (running && statusIndex != 2 && statusIndex != 3) {
-                timerTick();
-            }
-            updateActionBar();
-            }
-        }.runTaskTimer(plugin, 20, 20);
-        initialized = true;
+        startTimerTask();
     }
 
+    /**
+     * Pauses the timer
+     */
     public void pause() {
         running = false;
         setStatus(1);
     }
 
+    /**
+     * Stops the timer
+     * Like that, the timer is locked and can only be resetted by calling the reset function
+     */
     public void stop() {
         if (isZero()) {
             setStatus(3);
@@ -63,6 +72,10 @@ public class Timer {
         }
     }
 
+    /**
+     * Resets the timer
+     * Both style and time are basically set to zero
+     */
     public void reset() {
         setStatus(-1);
         setZero();
@@ -76,6 +89,12 @@ public class Timer {
         updateActionBar();
     }
 
+    /**
+     * Edits the currently shown time
+     *
+     * @param mode the mode, available options are "set", "add" and "subtract"
+     * @param times the given arguments, such as "1h" or "4m" or (together) "1h 4m 34s"
+     */
     public void editTime(String mode, String[] times) {
         int y, d, h, m, s;
         y = d = h = m = s = 0;
@@ -102,6 +121,17 @@ public class Timer {
         setTime(y, d, h, m, s, mode);
     }
 
+    /**
+     * Sets the currently shown time
+     * Used by editTime() to set the time
+     *
+     * @param y years
+     * @param d days
+     * @param h hours
+     * @param m minutes
+     * @param s seconds
+     * @param mode add, subtract, set
+     */
     private void setTime(int y, int d, int h, int m, int s, String mode) {
         long totalSeconds = seconds + 60 * (minutes + 60 * (hours + 24 * (days + 365L * years)));
         long tempSeconds = s + 60 * (m + 60 * (h + 24 * (d + 365L * y)));
@@ -129,9 +159,15 @@ public class Timer {
             totalSeconds %= 60;
             seconds = (int) totalSeconds;
         }
-        if(running) updateActionBar();
+        if (running) updateActionBar();
     }
 
+    /**
+     * Makes the color of the time the color in the given String
+     * Colors can be given as hex code or Minecraft color name
+     *
+     * @param colorString the String the color is in
+     */
     public void setColor(String colorString) {
         int red, blue, green;
         switch (colorString) {
@@ -224,6 +260,12 @@ public class Timer {
         updateActionBar();
     }
 
+    /**
+     * Applies the given text decoration to the time
+     *
+     * @param formatType the decoration
+     * @param value the value to set
+     */
     public void setDecoration(String formatType, boolean value) {
         switch (formatType) {
             case "bold":
@@ -243,8 +285,30 @@ public class Timer {
 
     /* ------------------------------------ */
 
+    /**
+     * Starts the {@link BukkitTask} for the timer
+     * Task runs every 20 ticks (1 second) and starts delayed by the same amount
+     * timerTick() is only run when timer is running, else the task prevents the action bar from disappearing
+     */
+    private void startTimerTask() {
+        if (task != null) return;
+        task = new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (running && statusIndex != 2 && statusIndex != 3) {
+                    timerTick();
+                }
+                updateActionBar();
+            }
+        }.runTaskTimer(plugin, 20, 20);
+        initialized = true;
+    }
+
+    /**
+     * Adds or subtracts one second from the timer, depending on whether it is running upwards or downwards
+     */
     private void timerTick() {
-        if (forward) {
+        if (upward) {
             if (seconds < 59) {
                 seconds++;
                 return;
@@ -305,14 +369,25 @@ public class Timer {
         }
     }
 
-    public boolean isZero() {
+    /**
+     * @return isZero whether the time is exactly zero
+     */
+    private boolean isZero() {
         return seconds == 0 && minutes == 0 && hours == 0 && days == 0 && years == 0;
     }
-    
+
+    /**
+     * Sets the time to zero
+     */
     private void setZero() {
         seconds = minutes = hours = days = years = 0;
     }
 
+    /**
+     * Sets the text status
+     *
+     * @param index determines the status text to display
+     */
     private void setStatus(int index) {
         switch (index) {
             case 0:
@@ -339,16 +414,21 @@ public class Timer {
         updateActionBar();
     }
 
+    /**
+     * Sends the action bar to the wanted players with the current time, status and style
+     */
     private void updateActionBar() {
-        String message = getTime();
+        Component component = Component.text(getTime()).style(style);
         for (Player player : Bukkit.getOnlinePlayers()) {
             Audience audience = plugin.getServer().getPlayer(player.getUniqueId());
             assert audience != null;
-            audience.sendActionBar(Component.text(message, style));
+            audience.sendActionBar(component);
         }
     }
 
-    @NotNull
+    /**
+     * @return time the time shown in the action bar
+     */
     private String getTime() {
         String time = "";
         if (years > 0) {
@@ -374,4 +454,76 @@ public class Timer {
         time += status;
         return time;
     }
+
+    /* ------------------------------------- */
+
+    /**
+     * Loads the given configuration
+     *
+     * @param config the given {@link FileConfiguration}
+     */
+    public void loadConfig(FileConfiguration config) {
+        years = config.getInt("time.years", 0);
+        days = config.getInt("time.days", 0);
+        hours = config.getInt("time.hours", 0);
+        minutes = config.getInt("time.minutes", 0);
+        seconds = config.getInt("time.seconds", 0);
+        initialized = config.getBoolean("config.initialized", false);
+        upward = config.getBoolean("config.upward", true);
+        setStatus(config.getInt("config.statusIndex", 0));
+        style = style.toBuilder()
+            .color(TextColor.color(
+                config.getInt("config.style.color.red", 255),
+                config.getInt("config.style.color.green", 255),
+                config.getInt("config.style.color.blue", 255)
+            ))
+            .decoration(TextDecoration.BOLD, config.getBoolean("config.style.bold", true))
+            .decoration(TextDecoration.ITALIC, config.getBoolean("config.style.italic", false))
+            .decoration(TextDecoration.UNDERLINED, config.getBoolean("config.style.underlined", false))
+        .build();
+        if (initialized) {
+            if (statusIndex == 0) {
+                start(upward);
+            } else {
+                startTimerTask();
+            }
+        }
+    }
+
+    /**
+     * Saves current state to given configuration
+     *
+     * @param config the given {@link FileConfiguration}
+     */
+    public void saveConfig(FileConfiguration config) {
+        config.set("time.years",years);
+        config.set("time.days", days);
+        config.set("time.hours", hours);
+        config.set("time.minutes", minutes);
+        config.set("time.seconds", seconds);
+        config.set("config.initialized", initialized);
+        config.set("config.upward", upward);
+        config.set("config.statusIndex", statusIndex);
+        if (style.color() != null) {
+            config.set("config.style.color.red", style.color().red());
+            config.set("config.style.color.green", style.color().green());
+            config.set("config.style.color.blue", style.color().blue());
+        }
+        config.set("config.style.bold", style.hasDecoration(TextDecoration.BOLD));
+        config.set("config.style.italic", style.hasDecoration(TextDecoration.ITALIC));
+        config.set("config.style.underlined", style.hasDecoration(TextDecoration.UNDERLINED));
+    }
+
+    /* ------------------------------------- */
+
+    /**
+     * Needed to determine whether the timer is allowed to run
+     * If the timer is stopped, it may not be run again
+     *
+     * @return mayRun whether the timer may run or not
+     */
+    public boolean mayRun() {
+        return statusIndex != 2 && statusIndex != 3;
+    }
 }
+

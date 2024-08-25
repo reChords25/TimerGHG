@@ -11,6 +11,6 @@ permissions :
 commands:
   timer:
     description: Displays and controls an action bar timer
-    usage: /timer <start|pause|reset|color>
+    usage: /timer <start | pause | stop | reset | format>
     permission: permission.timer
     permission-message: "You do not have permission to use this command"
