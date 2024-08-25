@@ -5,6 +5,8 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.Style;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -13,6 +15,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class Timer {
     private final TimerGHG plugin;
+
     private int seconds, minutes, hours, days, years, statusIndex;
     private String status;
     private Style style;
@@ -373,5 +376,45 @@ public class Timer {
         }
         time += status;
         return time;
+    }
+
+    /* ------------------------------------- */
+
+    public void loadConfig(FileConfiguration config) {
+        years = config.getInt("time.years", 0);
+        days = config.getInt("time.days", 0);
+        hours = config.getInt("time.hours", 0);
+        minutes = config.getInt("time.minutes", 0);
+        seconds = config.getInt("time.seconds", 0);
+        initialized = config.getBoolean("config.initialized", false);
+        forward = config.getBoolean("config.forward", true);
+        statusIndex = config.getInt("config.statusIndex", 0);
+        setStatus(statusIndex);
+        setDecoration("bold", config.getBoolean("config.style.bold", true));
+        setDecoration("italic", config.getBoolean("config.style.italic", false));
+        setDecoration("underline", config.getBoolean("config.style.underline", false));
+        style = style.toBuilder().color(TextColor.color(
+                config.getInt("config.style.color.red", 255),
+                config.getInt("config.style.color.green", 255),
+                config.getInt("config.style.color.blue", 255)
+        )).build();
+        if(initialized) start(forward);
+    }
+
+    public void saveConfig(FileConfiguration config) {
+        config.set("time.years",years);
+        config.set("time.days", days);
+        config.set("time.hours", hours);
+        config.set("time.minutes", minutes);
+        config.set("time.seconds", seconds);
+        config.set("config.initialized", initialized);
+        config.set("config.forward", forward);
+        config.set("config.statusIndex", statusIndex);
+        config.set("config.style.color.red", style.color().red());
+        config.set("config.style.color.green", style.color().green());
+        config.set("config.style.color.blue", style.color().blue());
+        config.set("config.style.bold", style.decorations().get(TextDecoration.BOLD).toString().equalsIgnoreCase("true"));
+        config.set("config.style.italic", style.decorations().get(TextDecoration.ITALIC).toString().equalsIgnoreCase("true"));
+        config.set("config.style.underlined", style.decorations().get(TextDecoration.UNDERLINED).toString().equalsIgnoreCase("true"));
     }
 }

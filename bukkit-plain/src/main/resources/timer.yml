@@ -1,0 +1,19 @@
+time:
+  years: 0
+  days: 0
+  hours: 0
+  minutes: 0
+  seconds: 0
+config:
+  initialized: false
+  forward: true
+  statusIndex: 0
+  style:
+    color:
+      red: 255
+      green: 255
+      blue: 255
+    bold: true
+    italic: false
+    underlined: false
+
