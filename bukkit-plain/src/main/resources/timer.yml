@@ -6,7 +6,7 @@ time:
   seconds: 0
 config:
   initialized: false
-  forward: true
+  upward: true
   statusIndex: 0
   style:
     color:

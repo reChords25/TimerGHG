@@ -4,8 +4,6 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -14,42 +12,62 @@ import java.util.List;
 public class TimerCommand implements CommandExecutor, TabCompleter {
     private final Timer timer;
 
+    /**
+     * Constructor of the timer command executor
+     *
+     * @param timer - the {@link Timer} object linked with the command executor
+     */
     public TimerCommand(Timer timer) {
         this.timer = timer;
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+    // Runs when command is sent
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        // DDOS proofing (so the server does not have to loop through dozens of unneccesary arguments
         if (args.length > 10) {
             sender.sendMessage("Too many arguments.");
             return false;
         }
+
+        //The first three arguments for easier handling in code
         String arg1 = args.length > 0 ? args[0].toLowerCase() : "";
         String arg2 = args.length > 1 ? args[1].toLowerCase() : "";
         String arg3 = args.length > 2 ? args[2].toLowerCase() : "";
+
+        // "/timer" on its own does nothing
         if (arg1.isEmpty()) {
             sender.sendMessage("You need to specify arguments like start or pause.");
             return false;
+        // Check whether first argument is valid
         } else if (!Arrays.asList("start", "pause", "stop", "reset", "style", "set", "add", "subtract").contains(arg1)) {
             sender.sendMessage("Unknown argument. Specify arguments like start or pause.");
             return false;
         }
+
+        // Logic for argument validation
         if (arg1.equals("start")) {
+            if (!timer.mayRun()) {
+                sender.sendMessage("Timer is locked. Reset with \"/timer reset\".");
+            }
             if (arg2.isEmpty()) {
                 timer.start(true);
             } else {
                 switch (arg2) {
-                    case "forward":
+                    case "upward":
                         timer.start(true);
                         break;
-                    case "backward":
+                    case "downward":
                         timer.start(false);
                         break;
                     default:
-                        sender.sendMessage("Unknown argument. Enter forward or backward.");
+                        sender.sendMessage("Unknown argument. Enter upward or downward.");
                 }
             }
         } else if (arg1.equals("pause")) {
+            if (!timer.mayRun()) {
+                sender.sendMessage("Timer is locked. Reset with \"/timer reset\".");
+            }
             timer.pause();
         } else if (arg1.equals("stop")) {
             timer.stop();
@@ -81,9 +99,11 @@ public class TimerCommand implements CommandExecutor, TabCompleter {
                     sender.sendMessage("You need to specify which style to edit and name a value.");
                     return false;
                 } else if (arg3.equals("false")) {
-                    timer.setDecoration(arg3, false);
+                    timer.setDecoration(arg2, false);
+                    sender.sendMessage("Input was false.");
                 } else if (arg3.equals("true")) {
-                    timer.setDecoration(arg3, true);
+                    timer.setDecoration(arg2, true);
+                    sender.sendMessage("Input was true.");
                 } else {
                     sender.sendMessage("You have to set a value (true or false).");
                     return false;
@@ -108,7 +128,9 @@ public class TimerCommand implements CommandExecutor, TabCompleter {
     }
 
     @Override
-    public @Nullable List<String> onTabComplete(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String s, @NotNull String[] args) {
+    // Runs whenever user types something after having typed in the /timer command
+    // Shows completions for the arguments. Logic may be changed in the future.
+    public List<String> onTabComplete(CommandSender commandSender, Command command, String s, String[] args) {
         List<String> list = new ArrayList<>();
         if (args.length == 1) {
             List<String> timerArgs = Arrays.asList("start", "pause", "stop", "reset", "style", "set", "add", "subtract");
@@ -118,7 +140,7 @@ public class TimerCommand implements CommandExecutor, TabCompleter {
                 }
             }
         } else if (args.length == 2 && args[0].equalsIgnoreCase("start")) {
-            List<String> formatArgs = Arrays.asList("backward", "forward");
+            List<String> formatArgs = Arrays.asList("downward", "upward");
             for (String formatArg : formatArgs) {
                 if (formatArg.startsWith(args[1].toLowerCase())) {
                     list.add(formatArg);
