@@ -408,6 +408,7 @@ public class Timer {
                 break;
             default:
                 status = "";
+                statusIndex = 0;
                 return;
         }
         statusIndex = index;

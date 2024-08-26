@@ -87,7 +87,7 @@ public class TimerCommand implements CommandExecutor, TabCompleter {
                         "yellow", "aqua", "blue",
                         "dark_red", "dark_green", "dark_blue",
                         "dark_aqua", "dark_purple", "light_purple"
-                ).contains(arg3) && arg3.matches("^#([0-9A-Fa-f]{6})$")) {
+                ).contains(arg3) && !arg3.matches("^#([0-9A-Fa-f]{6})$")) {
                     sender.sendMessage(String.format("\"%s\" is not a known color.", arg3));
                     return false;
                 } else {
