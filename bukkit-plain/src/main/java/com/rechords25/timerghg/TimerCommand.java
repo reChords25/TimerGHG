@@ -100,10 +100,8 @@ public class TimerCommand implements CommandExecutor, TabCompleter {
                     return false;
                 } else if (arg3.equals("false")) {
                     timer.setDecoration(arg2, false);
-                    sender.sendMessage("Input was false.");
                 } else if (arg3.equals("true")) {
                     timer.setDecoration(arg2, true);
-                    sender.sendMessage("Input was true.");
                 } else {
                     sender.sendMessage("You have to set a value (true or false).");
                     return false;

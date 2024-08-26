@@ -4,7 +4,7 @@ time:
   hours: 0
   minutes: 0
   seconds: 0
-config:
+state:
   initialized: false
   upward: true
   statusIndex: 0
@@ -16,4 +16,8 @@ config:
     bold: true
     italic: false
     underlined: false
+settings:
+  # when should the timer pause etc.?
+  # when should the timer start etc.?
+  # what should the timer do?
 
