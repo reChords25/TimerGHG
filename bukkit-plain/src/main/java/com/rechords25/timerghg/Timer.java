@@ -408,6 +408,7 @@ public class Timer {
                 break;
             default:
                 status = "";
+                statusIndex = 0;
                 return;
         }
         statusIndex = index;
@@ -468,18 +469,18 @@ public class Timer {
         hours = config.getInt("time.hours", 0);
         minutes = config.getInt("time.minutes", 0);
         seconds = config.getInt("time.seconds", 0);
-        initialized = config.getBoolean("config.initialized", false);
-        upward = config.getBoolean("config.upward", true);
-        setStatus(config.getInt("config.statusIndex", 0));
+        initialized = config.getBoolean("state.initialized", false);
+        upward = config.getBoolean("state.upward", true);
+        setStatus(config.getInt("state.statusIndex", 0));
         style = style.toBuilder()
             .color(TextColor.color(
-                config.getInt("config.style.color.red", 255),
-                config.getInt("config.style.color.green", 255),
-                config.getInt("config.style.color.blue", 255)
+                config.getInt("state.style.color.red", 255),
+                config.getInt("state.style.color.green", 255),
+                config.getInt("state.style.color.blue", 255)
             ))
-            .decoration(TextDecoration.BOLD, config.getBoolean("config.style.bold", true))
-            .decoration(TextDecoration.ITALIC, config.getBoolean("config.style.italic", false))
-            .decoration(TextDecoration.UNDERLINED, config.getBoolean("config.style.underlined", false))
+            .decoration(TextDecoration.BOLD, config.getBoolean("state.style.bold", true))
+            .decoration(TextDecoration.ITALIC, config.getBoolean("state.style.italic", false))
+            .decoration(TextDecoration.UNDERLINED, config.getBoolean("state.style.underlined", false))
         .build();
         if (initialized) {
             if (statusIndex == 0) {
@@ -501,17 +502,17 @@ public class Timer {
         config.set("time.hours", hours);
         config.set("time.minutes", minutes);
         config.set("time.seconds", seconds);
-        config.set("config.initialized", initialized);
-        config.set("config.upward", upward);
-        config.set("config.statusIndex", statusIndex);
+        config.set("state.initialized", initialized);
+        config.set("state.upward", upward);
+        config.set("state.statusIndex", statusIndex);
         if (style.color() != null) {
-            config.set("config.style.color.red", style.color().red());
-            config.set("config.style.color.green", style.color().green());
-            config.set("config.style.color.blue", style.color().blue());
+            config.set("state.style.color.red", style.color().red());
+            config.set("state.style.color.green", style.color().green());
+            config.set("state.style.color.blue", style.color().blue());
         }
-        config.set("config.style.bold", style.hasDecoration(TextDecoration.BOLD));
-        config.set("config.style.italic", style.hasDecoration(TextDecoration.ITALIC));
-        config.set("config.style.underlined", style.hasDecoration(TextDecoration.UNDERLINED));
+        config.set("state.style.bold", style.hasDecoration(TextDecoration.BOLD));
+        config.set("state.style.italic", style.hasDecoration(TextDecoration.ITALIC));
+        config.set("state.style.underlined", style.hasDecoration(TextDecoration.UNDERLINED));
     }
 
     /* ------------------------------------- */
