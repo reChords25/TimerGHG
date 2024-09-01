@@ -16,27 +16,33 @@ import org.bukkit.configuration.file.FileConfiguration;
 public class Timer {
     // Plugin reference
     private final TimerGHG plugin;
+    // Config reference
+    private final FileConfiguration config;
 
     // Time and status for the action bar
     private int seconds, minutes, hours, days, years, statusIndex;
+    private int red, green, blue;
+    private boolean bold, italic, underlined;
     private String status;
 
     // Style for the action bar, containing color and formatting like boldness
     private Style style;
 
-    // Timer task which runs every 20 ticks, so one second, currently synchronized
+    // Timer task which runs every 20 ticks, so one second; currently synchronized
     private BukkitTask task;
 
-    // Timer properties determining its behavior
+    // Timer settings determining its behavior
     private boolean running, initialized, upward;
 
     /**
      * Constructor for a Timer object
      *
      * @param plugin the parent plugin of type {@link TimerGHG}
+     * @param config the configuration for the timer
      */
-    public Timer(TimerGHG plugin) {
+    public Timer(TimerGHG plugin, FileConfiguration config) {
         this.plugin = plugin;
+        this.config = config;
         this.style = Style.empty();
     }
 
@@ -74,17 +80,27 @@ public class Timer {
 
     /**
      * Resets the timer
-     * Both style and time are basically set to zero
+     * @param what what should be reset, defaults-confirm resetting the defaults, others loading them
      */
-    public void reset() {
-        setStatus(-1);
-        setZero();
-        running = false;
-        initialized = false;
-        style = Style.style(TextDecoration.BOLD, TextColor.color(255, 255, 255));
-        if (task != null) {
-            task.cancel();
-            task = null;
+    public void reset(String what) {
+        switch (what) {
+            case "time":
+                loadDefaultTime();
+                break;
+            case "style":
+                loadDefaultStyle();
+                break;
+            case "settings":
+                loadDefaultSettings();
+                break;
+            case "all":
+                loadDefaultTime();
+                loadDefaultStyle();
+                loadDefaultSettings();
+                break;
+            case "defaults-confirm":
+                resetDefaults();
+                break;
         }
         updateActionBar();
     }
@@ -169,7 +185,6 @@ public class Timer {
      * @param colorString the String the color is in
      */
     public void setColor(String colorString) {
-        int red, blue, green;
         switch (colorString) {
             case "black":
                 red = 0;
@@ -256,7 +271,7 @@ public class Timer {
                 green = Integer.parseInt(colorString.substring(3,5), 16);
                 blue = Integer.parseInt(colorString.substring(5,7), 16);
         }
-        style = style.toBuilder().color(TextColor.color(red, green, blue)).build();
+        makeStyle();
         updateActionBar();
     }
 
@@ -269,21 +284,34 @@ public class Timer {
     public void setDecoration(String formatType, boolean value) {
         switch (formatType) {
             case "bold":
-                style = style.toBuilder().decoration(TextDecoration.BOLD, value).build();
+                bold = value;
                 break;
             case "italic":
-                style = style.toBuilder().decoration(TextDecoration.ITALIC, value).build();
+                italic = value;
                 break;
             case "underline":
-                style = style.toBuilder().decoration(TextDecoration.UNDERLINED, value).build();
+                underlined = value;
                 break;
             default:
                 return;
         }
+        makeStyle();
         updateActionBar();
     }
 
     /* ------------------------------------ */
+
+    /**
+     * Creates a {@link Style} from the style settings of the timer
+     */
+    private void makeStyle() {
+        style = style.toBuilder()
+                .color(TextColor.color(red, green, blue))
+                .decoration(TextDecoration.BOLD, bold)
+                .decoration(TextDecoration.ITALIC, italic)
+                .decoration(TextDecoration.UNDERLINED, underlined)
+                .build();
+    }
 
     /**
      * Starts the {@link BukkitTask} for the timer
@@ -384,7 +412,7 @@ public class Timer {
     }
 
     /**
-     * Sets the text status
+     * Sets the text status and internal status index
      *
      * @param index determines the status text to display
      */
@@ -416,10 +444,10 @@ public class Timer {
     }
 
     /**
-     * Sends the action bar to the wanted players with the current time, status and style
+     * Sends the action bar to the selected players with the current time, status and style
      */
     private void updateActionBar() {
-        Component component = Component.text(getTime()).style(style);
+        Component component = Component.text(getTime() + (status.isEmpty() ? "" : " " + status)).style(style);
         for (Player player : Bukkit.getOnlinePlayers()) {
             Audience audience = plugin.getServer().getPlayer(player.getUniqueId());
             assert audience != null;
@@ -450,38 +478,34 @@ public class Timer {
         }
         if (running || seconds > 0) {
             time += String.valueOf(seconds);
-            time += "s ";
+            time += "s";
         }
-        time += status;
         return time;
     }
 
     /* ------------------------------------- */
 
     /**
-     * Loads the given configuration
-     *
-     * @param config the given {@link FileConfiguration}
+     * Loads the configuration
      */
-    public void loadConfig(FileConfiguration config) {
+    public void loadConfig() {
         years = config.getInt("time.years", 0);
         days = config.getInt("time.days", 0);
         hours = config.getInt("time.hours", 0);
         minutes = config.getInt("time.minutes", 0);
         seconds = config.getInt("time.seconds", 0);
         initialized = config.getBoolean("state.initialized", false);
-        upward = config.getBoolean("state.upward", true);
+        upward = config.getBoolean("settings.upward", true);
         setStatus(config.getInt("state.statusIndex", 0));
-        style = style.toBuilder()
-            .color(TextColor.color(
-                config.getInt("state.style.color.red", 255),
-                config.getInt("state.style.color.green", 255),
-                config.getInt("state.style.color.blue", 255)
-            ))
-            .decoration(TextDecoration.BOLD, config.getBoolean("state.style.bold", true))
-            .decoration(TextDecoration.ITALIC, config.getBoolean("state.style.italic", false))
-            .decoration(TextDecoration.UNDERLINED, config.getBoolean("state.style.underlined", false))
-        .build();
+
+        red = config.getInt("state.style.color.red", 255);
+        green = config.getInt("state.style.color.green", 255);
+        blue = config.getInt("state.style.color.blue", 255);
+
+        bold = config.getBoolean("state.style.bold", true);
+        italic = config.getBoolean("state.style.italic", true);
+        underlined = config.getBoolean("state.style.underlined", true);
+
         if (initialized) {
             if (statusIndex == 0) {
                 start(upward);
@@ -492,18 +516,78 @@ public class Timer {
     }
 
     /**
-     * Saves current state to given configuration
-     *
-     * @param config the given {@link FileConfiguration}
+     * Loads the default time from the configuration
+     * Resets the timer task
      */
-    public void saveConfig(FileConfiguration config) {
+    private void loadDefaultTime() {
+        years = config.getInt("defaults.time.years", 0);
+        days = config.getInt("defaults.time.days", 0);
+        hours = config.getInt("defaults.time.hours", 0);
+        minutes = config.getInt("defaults.time.minutes", 0);
+        seconds = config.getInt("defaults.time.seconds", 0);
+
+        setStatus(-1);
+        running = false;
+        initialized = false;
+        if (task != null) {
+            task.cancel();
+            task = null;
+        }
+    }
+
+    /**
+     * Loads the default styling from the configuration
+     */
+    private void loadDefaultStyle() {
+        red = config.getInt("defaults.style.color.red", 255);
+        green = config.getInt("defaults.style.color.green", 255);
+        blue = config.getInt("defaults.style.color.blue", 255);
+
+        bold = config.getBoolean("defaults.style.bold", true);
+        italic = config.getBoolean("defaults.style.italic", false);
+        underlined = config.getBoolean("defaults.style.italic", false);
+
+        makeStyle();
+    }
+
+    /**
+     * Loads the default settings from the configuration
+     */
+    private void loadDefaultSettings() {
+        upward = config.getBoolean("defaults.settings.upward", true);
+    }
+
+    /**
+     * Resets even the default values set in the configuration to the shipped defaults
+     */
+    private void resetDefaults() {
+        config.set("defaults.time.years", 0);
+        config.set("defaults.time.days", 0);
+        config.set("defaults.time.hours", 0);
+        config.set("defaults.time.minutes", 0);
+        config.set("defaults.time.seconds", 0);
+
+        config.set("defaults.style.color.red", 255);
+        config.set("defaults.style.color.green", 255);
+        config.set("defaults.style.color.blue", 255);
+        config.set("defaults.style.bold", true);
+        config.set("defaults.style.italic", false);
+        config.set("defaults.style.underlined", false);
+
+        config.set("settings.upward", true);
+    }
+
+    /**
+     * Saves current state to the configuration
+     */
+    public void saveConfig() {
         config.set("time.years",years);
         config.set("time.days", days);
         config.set("time.hours", hours);
         config.set("time.minutes", minutes);
         config.set("time.seconds", seconds);
         config.set("state.initialized", initialized);
-        config.set("state.upward", upward);
+        config.set("settings.upward", upward);
         config.set("state.statusIndex", statusIndex);
         if (style.color() != null) {
             config.set("state.style.color.red", style.color().red());

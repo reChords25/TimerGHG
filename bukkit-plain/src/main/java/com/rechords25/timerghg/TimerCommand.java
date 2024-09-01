@@ -1,5 +1,9 @@
 package com.rechords25.timerghg;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -24,7 +28,7 @@ public class TimerCommand implements CommandExecutor, TabCompleter {
     @Override
     // Runs when command is sent
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        // DDOS proofing (so the server does not have to loop through dozens of unneccesary arguments
+        // DDOS proofing (so the server does not have to loop through dozens of unnecessary arguments
         if (args.length > 10) {
             sender.sendMessage("Too many arguments.");
             return false;
@@ -72,7 +76,18 @@ public class TimerCommand implements CommandExecutor, TabCompleter {
         } else if (arg1.equals("stop")) {
             timer.stop();
         } else if (arg1.equals("reset")) {
-            timer.reset();
+            if (Arrays.asList("style", "time", "settings", "all", "defaults-confirm").contains(arg2)) {
+                timer.reset(arg2);
+            } else if (arg2.isEmpty()) {
+                timer.reset("time");
+            } else if (arg2.equalsIgnoreCase("defaults")) {
+                sender.sendMessage(Component.text("CAUTION!").color(TextColor.color(255, 85, 85)).decorate(TextDecoration.BOLD));
+                sender.sendMessage(Component.text("This will reset all of the default values set, not the timer itself!").color(TextColor.color(255, 85, 85)));
+                sender.sendMessage(Component.text("If you know what you're doing, run \"/timer reset defaults-confirm\".").color(TextColor.color(255, 85, 85)));
+            } else {
+                sender.sendMessage("Possible options are style, time, settings, all and defaults.");
+                return false;
+            }
         } else if (arg1.equals("style")) {
             if (arg2.isEmpty()) {
                 sender.sendMessage("You need to specify which style to edit and name a value.");
@@ -146,6 +161,13 @@ public class TimerCommand implements CommandExecutor, TabCompleter {
             }
         } else if (args.length == 2 && args[0].equalsIgnoreCase("style")) {
             List<String> formatArgs = Arrays.asList("color", "italic", "bold", "underline");
+            for (String formatArg : formatArgs) {
+                if (formatArg.startsWith(args[1].toLowerCase())) {
+                    list.add(formatArg);
+                }
+            }
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("reset")) {
+            List<String> formatArgs = Arrays.asList("all", "time", "style", "settings", "defaults");
             for (String formatArg : formatArgs) {
                 if (formatArg.startsWith(args[1].toLowerCase())) {
                     list.add(formatArg);
