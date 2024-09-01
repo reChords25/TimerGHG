@@ -8,6 +8,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,7 +28,7 @@ public class TimerCommand implements CommandExecutor, TabCompleter {
 
     @Override
     // Runs when command is sent
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
         // DDOS proofing (so the server does not have to loop through dozens of unnecessary arguments
         if (args.length > 10) {
             sender.sendMessage("Too many arguments.");
@@ -143,7 +144,7 @@ public class TimerCommand implements CommandExecutor, TabCompleter {
     @Override
     // Runs whenever user types something after having typed in the /timer command
     // Shows completions for the arguments. Logic may be changed in the future.
-    public List<String> onTabComplete(CommandSender commandSender, Command command, String s, String[] args) {
+    public List<String> onTabComplete(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String s, String[] args) {
         List<String> list = new ArrayList<>();
         if (args.length == 1) {
             List<String> timerArgs = Arrays.asList("start", "pause", "stop", "reset", "style", "set", "add", "subtract");

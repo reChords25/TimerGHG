@@ -68,7 +68,7 @@ public class Timer {
 
     /**
      * Stops the timer
-     * Like that, the timer is locked and can only be resetted by calling the reset function
+     * Like that, the timer is locked and can only be reset by calling the reset function
      */
     public void stop() {
         if (isZero()) {
