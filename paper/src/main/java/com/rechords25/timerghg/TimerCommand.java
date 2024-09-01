@@ -1,7 +1,6 @@
 package com.rechords25.timerghg;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.command.Command;
@@ -129,6 +128,9 @@ public class TimerCommand implements CommandExecutor, TabCompleter {
             if (arg2.isEmpty()) {
                 sender.sendMessage("You have to enter a time like \"1h 30m\".");
                 return false;
+            }
+            if (!timer.mayRun()) {
+                sender.sendMessage("Timer is locked. Reset with \"/timer reset\".");
             }
             for (String timeArg : Arrays.copyOfRange(args, 1, args.length)) {
                 if (!timeArg.matches("^[0-9]+[smhdy]$")) {

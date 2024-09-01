@@ -12,6 +12,8 @@ import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.configuration.file.FileConfiguration;
 
+import java.time.Duration;
+
 
 public class Timer {
     // Plugin reference
@@ -20,7 +22,8 @@ public class Timer {
     private final FileConfiguration config;
 
     // Time and status for the action bar
-    private int seconds, minutes, hours, days, years, statusIndex;
+    private Duration time;
+    private int statusIndex;
     private int red, green, blue;
     private boolean bold, italic, underlined;
     private String status;
@@ -44,6 +47,7 @@ public class Timer {
         this.plugin = plugin;
         this.config = config;
         this.style = Style.empty();
+        this.time = Duration.ZERO;
     }
 
     /**
@@ -53,7 +57,9 @@ public class Timer {
      */
     public void start(boolean isUpward) {
         upward = isUpward;
-        if (!upward && isZero()) setTime(0, 0, 1, 0, 0, "set");
+        if (!upward && isZero()) setTime(0, 0, 1, 0, "set");
+
+        sendActionBar(Component.text(isZero() ? "Started timer!" : "Resumed timer!").style(style));
         if (statusIndex == 0 || statusIndex == 1) setStatus(0);
         startTimerTask();
     }
@@ -102,7 +108,7 @@ public class Timer {
                 resetDefaults();
                 break;
         }
-        updateActionBar();
+        sendTime();
     }
 
     /**
@@ -112,14 +118,11 @@ public class Timer {
      * @param times the given arguments, such as "1h" or "4m" or (together) "1h 4m 34s"
      */
     public void editTime(String mode, String[] times) {
-        int y, d, h, m, s;
-        y = d = h = m = s = 0;
-        for (String time : times) {
-            int number = Integer.parseInt(time.substring(0, time.length() - 1));
-            switch (time.charAt(time.length() - 1)) {
-                case 'y':
-                    y += number;
-                    break;
+        int d, h, m, s;
+        d = h = m = s = 0;
+        for (String timeStr : times) {
+            int number = Integer.parseInt(timeStr.substring(0, timeStr.length() - 1));
+            switch (timeStr.charAt(timeStr.length() - 1)) {
                 case 'd':
                     d += number;
                     break;
@@ -134,48 +137,32 @@ public class Timer {
                     break;
             }
         }
-        setTime(y, d, h, m, s, mode);
+        setTime(d, h, m, s, mode);
     }
 
     /**
      * Sets the currently shown time
      * Used by editTime() to set the time
      *
-     * @param y years
      * @param d days
      * @param h hours
      * @param m minutes
      * @param s seconds
      * @param mode add, subtract, set
      */
-    private void setTime(int y, int d, int h, int m, int s, String mode) {
-        long totalSeconds = seconds + 60 * (minutes + 60 * (hours + 24 * (days + 365L * years)));
-        long tempSeconds = s + 60 * (m + 60 * (h + 24 * (d + 365L * y)));
+    private void setTime(int d, int h, int m, int s, String mode) {
         switch (mode) {
             case "set":
-                totalSeconds = tempSeconds;
+                time = Duration.ZERO.plusDays(d).plusHours(h).plusMinutes(m).plusSeconds(s);
                 break;
             case "add":
-                totalSeconds += tempSeconds;
+                time = time.plusDays(d).plusHours(h).plusMinutes(m).plusSeconds(s);
                 break;
             case "subtract":
-                totalSeconds -= tempSeconds;
+                time = time.minusDays(d).minusHours(h).minusMinutes(m).minusSeconds(s);
                 break;
         }
-        if (totalSeconds <= 0) {
-            setZero();
-        } else {
-            years = (int) (totalSeconds / 31536000);
-            totalSeconds %= 31536000;
-            days = (int) (totalSeconds / 86400);
-            totalSeconds %= 86400;
-            hours = (int) (totalSeconds / 3600);
-            totalSeconds %= 3600;
-            minutes = (int) (totalSeconds / 60);
-            totalSeconds %= 60;
-            seconds = (int) totalSeconds;
-        }
-        if (running) updateActionBar();
+        if (running) sendTime();
     }
 
     /**
@@ -272,7 +259,7 @@ public class Timer {
                 blue = Integer.parseInt(colorString.substring(5,7), 16);
         }
         makeStyle();
-        updateActionBar();
+        sendTime();
     }
 
     /**
@@ -296,7 +283,7 @@ public class Timer {
                 return;
         }
         makeStyle();
-        updateActionBar();
+        sendTime();
     }
 
     /* ------------------------------------ */
@@ -326,7 +313,7 @@ public class Timer {
                 if (running && statusIndex != 2 && statusIndex != 3) {
                     timerTick();
                 }
-                updateActionBar();
+                sendTime();
             }
         }.runTaskTimer(plugin, 20, 20);
         initialized = true;
@@ -337,63 +324,12 @@ public class Timer {
      */
     private void timerTick() {
         if (upward) {
-            if (seconds < 59) {
-                seconds++;
-                return;
-            } else {
-                seconds = 0;
-                minutes++;
-            }
-            if (minutes == 60) {
-                minutes = 0;
-                hours++;
-            } else {
-                return;
-            }
-            if (hours == 24) {
-                hours = 0;
-                days++;
-            } else {
-                return;
-            }
-            if (days == 365) {
-                days = 0;
-                years++;
-            }
+            time = time.plusSeconds(1);
         } else {
-            seconds--;
-            if (isZero()) {
-                setZero();
-                stop();
-                return;
-            }
-            seconds++;
-            if (seconds > 0) {
-                seconds--;
-            } else {
-                seconds = 59;
-                if (minutes > 0) {
-                    minutes--;
-                } else {
-                    minutes = 59;
-                    if (hours > 0) {
-                        hours--;
-                    } else {
-                        hours = 23;
-                        if (days > 0) {
-                            days--;
-                        } else {
-                            days = 364;
-                            if (years > 0) {
-                                years--;
-                            } else {
-                                setZero();
-                                stop();
-                            }
-                        }
-                    }
-                }
-            }
+            time = time.minusSeconds(1);
+        }
+        if (isZero()) {
+            stop();
         }
     }
 
@@ -401,14 +337,7 @@ public class Timer {
      * @return isZero whether the time is exactly zero
      */
     private boolean isZero() {
-        return seconds == 0 && minutes == 0 && hours == 0 && days == 0 && years == 0;
-    }
-
-    /**
-     * Sets the time to zero
-     */
-    private void setZero() {
-        seconds = minutes = hours = days = years = 0;
+        return time.getSeconds() == 0;
     }
 
     /**
@@ -440,47 +369,36 @@ public class Timer {
                 return;
         }
         statusIndex = index;
-        updateActionBar();
+        sendTime();
     }
 
     /**
-     * Sends the action bar to the selected players with the current time, status and style
+     * Sends the time to the action bar with the current time, status and style
      */
-    private void updateActionBar() {
-        Component component = Component.text(getTime() + (status.isEmpty() ? "" : " " + status)).style(style);
+    private void sendTime() {
+        sendActionBar(Component.text(getTimeString() + (status.isEmpty() ? "" : " " + status)).style(style));
+    }
+
+    /**
+     * Sends the action bar to the selected players
+     */
+    private void sendActionBar(Component content) {
         for (Player player : Bukkit.getOnlinePlayers()) {
             Audience audience = plugin.getServer().getPlayer(player.getUniqueId());
             assert audience != null;
-            audience.sendActionBar(component);
+            audience.sendActionBar(content);
         }
     }
 
     /**
      * @return time the time shown in the action bar
      */
-    private String getTime() {
-        String time = "";
-        if (years > 0) {
-            time += String.valueOf(years);
-            time += "y ";
-        }
-        if (days > 0) {
-            time += String.valueOf(days);
-            time += "d ";
-        }
-        if (hours > 0) {
-            time += String.valueOf(hours);
-            time += "h ";
-        }
-        if (minutes > 0) {
-            time += String.valueOf(minutes);
-            time += "m ";
-        }
-        if (running || seconds > 0) {
-            time += String.valueOf(seconds);
-            time += "s";
-        }
-        return time;
+    private String getTimeString() {
+        String days = time.toDaysPart() == 0 ? "" : time.toDaysPart() + "d ";
+        String hours = time.toHoursPart() == 0 ? "" : time.toHoursPart() + "h ";
+        String minutes = time.toMinutesPart() == 0 ? "" : time.toMinutesPart() + "m ";
+        String seconds = time.toSecondsPart() == 0 ? "" : time.toSecondsPart() + "s";
+        return days + hours + minutes + seconds;
     }
 
     /* ------------------------------------- */
@@ -489,11 +407,11 @@ public class Timer {
      * Loads the configuration
      */
     public void loadConfig() {
-        years = config.getInt("time.years", 0);
-        days = config.getInt("time.days", 0);
-        hours = config.getInt("time.hours", 0);
-        minutes = config.getInt("time.minutes", 0);
-        seconds = config.getInt("time.seconds", 0);
+        time = Duration.ZERO
+                .plusDays(config.getInt("time.days", 0))
+                .plusHours(config.getInt("time.hours", 0))
+                .plusMinutes(config.getInt("time.minutes", 0))
+                .plusSeconds(config.getInt("time.seconds", 0));
         initialized = config.getBoolean("state.initialized", false);
         upward = config.getBoolean("settings.upward", true);
         setStatus(config.getInt("state.statusIndex", 0));
@@ -505,6 +423,8 @@ public class Timer {
         bold = config.getBoolean("state.style.bold", true);
         italic = config.getBoolean("state.style.italic", true);
         underlined = config.getBoolean("state.style.underlined", true);
+
+        makeStyle();
 
         if (initialized) {
             if (statusIndex == 0) {
@@ -520,11 +440,11 @@ public class Timer {
      * Resets the timer task
      */
     private void loadDefaultTime() {
-        years = config.getInt("defaults.time.years", 0);
-        days = config.getInt("defaults.time.days", 0);
-        hours = config.getInt("defaults.time.hours", 0);
-        minutes = config.getInt("defaults.time.minutes", 0);
-        seconds = config.getInt("defaults.time.seconds", 0);
+        time = Duration.ZERO
+                .plusDays(config.getInt("defaults.time.days", 0))
+                .plusHours(config.getInt("defaults.time.hours", 0))
+                .plusMinutes(config.getInt("defaults.time.minutes", 0))
+                .plusSeconds(config.getInt("defaults.time.seconds", 0));
 
         setStatus(-1);
         running = false;
@@ -561,7 +481,6 @@ public class Timer {
      * Resets even the default values set in the configuration to the shipped defaults
      */
     private void resetDefaults() {
-        config.set("defaults.time.years", 0);
         config.set("defaults.time.days", 0);
         config.set("defaults.time.hours", 0);
         config.set("defaults.time.minutes", 0);
@@ -581,11 +500,10 @@ public class Timer {
      * Saves current state to the configuration
      */
     public void saveConfig() {
-        config.set("time.years",years);
-        config.set("time.days", days);
-        config.set("time.hours", hours);
-        config.set("time.minutes", minutes);
-        config.set("time.seconds", seconds);
+        config.set("time.days", time.toDaysPart());
+        config.set("time.hours", time.toHoursPart());
+        config.set("time.minutes", time.toMinutesPart());
+        config.set("time.seconds", time.toSecondsPart());
         config.set("state.initialized", initialized);
         config.set("settings.upward", upward);
         config.set("state.statusIndex", statusIndex);
