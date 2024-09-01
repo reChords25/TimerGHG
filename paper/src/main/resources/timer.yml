@@ -1,0 +1,42 @@
+time:
+  years: 0
+  days: 0
+  hours: 0
+  minutes: 0
+  seconds: 0
+state:
+  initialized: false
+  statusIndex: 0
+  style:
+    color:
+      red: 255
+      green: 255
+      blue: 255
+    bold: true
+    italic: false
+    underlined: false
+settings:
+  upward: true
+  # when should the timer pause etc.?
+  # when should the timer start etc.?
+  # what should the timer do?
+
+defaults:
+  time:
+    years: 0
+    days: 0
+    hours: 0
+    minutes: 0
+    seconds: 0
+  style:
+    color:
+      red: 255
+      green: 255
+      blue: 255
+    bold: true
+    italic: false
+    underlined: false
+    settings:
+      upward: true
+
+
