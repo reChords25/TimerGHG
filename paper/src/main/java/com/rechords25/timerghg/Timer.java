@@ -57,11 +57,11 @@ public class Timer {
      */
     public void start(boolean isUpward) {
         upward = isUpward;
-        if (!upward && isZero()) setTime(0, 0, 1, 0, "set");
+        if (!upward && isZero()) setTime(0, 1, 0, 0, "set");
 
-        sendActionBar(Component.text(isZero() ? "Started timer!" : "Resumed timer!").style(style));
         if (statusIndex == 0 || statusIndex == 1) setStatus(0);
         startTimerTask();
+        sendActionBar(Component.text(isZero() ? "Timer started!" : "Timer resumed!").style(style));
     }
 
     /**
@@ -70,6 +70,7 @@ public class Timer {
     public void pause() {
         running = false;
         setStatus(1);
+        sendActionBar(Component.text("Timer paused!").style(style));
     }
 
     /**
@@ -81,6 +82,7 @@ public class Timer {
             setStatus(3);
         } else {
             setStatus(2);
+            sendActionBar(Component.text("Timer stopped!").style(style));
         }
     }
 
@@ -376,7 +378,7 @@ public class Timer {
      * Sends the time to the action bar with the current time, status and style
      */
     private void sendTime() {
-        sendActionBar(Component.text(getTimeString() + (status.isEmpty() ? "" : " " + status)).style(style));
+        sendActionBar(Component.text(getTimeString() + " " + status).style(style));
     }
 
     /**
@@ -398,7 +400,7 @@ public class Timer {
         String hours = time.toHoursPart() == 0 ? "" : time.toHoursPart() + "h ";
         String minutes = time.toMinutesPart() == 0 ? "" : time.toMinutesPart() + "m ";
         String seconds = time.toSecondsPart() == 0 ? "" : time.toSecondsPart() + "s";
-        return days + hours + minutes + seconds;
+        return (days + hours + minutes + seconds).strip();
     }
 
     /* ------------------------------------- */
@@ -414,7 +416,7 @@ public class Timer {
                 .plusSeconds(config.getInt("time.seconds", 0));
         initialized = config.getBoolean("state.initialized", false);
         upward = config.getBoolean("settings.upward", true);
-        setStatus(config.getInt("state.statusIndex", 0));
+        setStatus(config.getInt("state.statusindex", 0));
 
         red = config.getInt("state.style.color.red", 255);
         green = config.getInt("state.style.color.green", 255);
@@ -493,7 +495,7 @@ public class Timer {
         config.set("defaults.style.italic", false);
         config.set("defaults.style.underlined", false);
 
-        config.set("settings.upward", true);
+        config.set("defaults.settings.upward", true);
     }
 
     /**
@@ -506,7 +508,7 @@ public class Timer {
         config.set("time.seconds", time.toSecondsPart());
         config.set("state.initialized", initialized);
         config.set("settings.upward", upward);
-        config.set("state.statusIndex", statusIndex);
+        config.set("state.statusindex", statusIndex);
         if (style.color() != null) {
             config.set("state.style.color.red", style.color().red());
             config.set("state.style.color.green", style.color().green());
