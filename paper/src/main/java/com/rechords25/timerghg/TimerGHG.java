@@ -1,29 +1,21 @@
 package com.rechords25.timerghg;
 
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 
 
-public final class TimerGHG extends JavaPlugin implements Listener {
+public final class TimerGHG extends JavaPlugin {
     private Timer timer;
     private ConfigUtil mainConfig;
 
     @Override
     public void onEnable() {
-        // Runs on plugin load (server start or reload)
-
         // Prepare config file
         mainConfig = new ConfigUtil(this, "timer.yml");
         if (!mainConfig.getFile().exists()) {
             saveResource("timer.yml", false);
         }
         timer = new Timer(this, mainConfig.getConfig());
-
-
 
         // Load timer state from timer.yml config file
         timer.loadConfig();
@@ -38,18 +30,6 @@ public final class TimerGHG extends JavaPlugin implements Listener {
         // Save current timer state to the timer.yml config file
         timer.saveConfig();
         getLogger().info(mainConfig.save() ? "Saved main config." : "Could not save main config.");
-    }
-
-    @EventHandler
-    // Runs when a player leaves the server
-    public void onPlayerQuit(PlayerQuitEvent event) {
-
-    }
-
-    @EventHandler
-    // Runs when a player joins the server
-    public void onPlayerJoin(PlayerJoinEvent event) {
-
     }
 
 }

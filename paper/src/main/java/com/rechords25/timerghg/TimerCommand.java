@@ -1,7 +1,6 @@
 package com.rechords25.timerghg;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.command.Command;
@@ -54,6 +53,7 @@ public class TimerCommand implements CommandExecutor, TabCompleter {
         if (arg1.equals("start")) {
             if (!timer.mayRun()) {
                 sender.sendMessage("Timer is locked. Reset with \"/timer reset\".");
+                return true;
             }
             if (arg2.isEmpty()) {
                 timer.start(true);
@@ -72,6 +72,7 @@ public class TimerCommand implements CommandExecutor, TabCompleter {
         } else if (arg1.equals("pause")) {
             if (!timer.mayRun()) {
                 sender.sendMessage("Timer is locked. Reset with \"/timer reset\".");
+                return true;
             }
             timer.pause();
         } else if (arg1.equals("stop")) {
@@ -100,9 +101,10 @@ public class TimerCommand implements CommandExecutor, TabCompleter {
                 } else if (!Arrays.asList(
                         "black", "dark_gray", "gray",
                         "white", "red", "gold",
-                        "yellow", "aqua", "blue",
-                        "dark_red", "dark_green", "dark_blue",
-                        "dark_aqua", "dark_purple", "light_purple"
+                        "yellow", "lime", "aqua",
+                        "blue", "dark_red", "dark_green",
+                        "dark_blue", "dark_aqua",
+                        "dark_purple", "light_purple"
                 ).contains(arg3) && !arg3.matches("^#([0-9A-Fa-f]{6})$")) {
                     sender.sendMessage(String.format("\"%s\" is not a known color.", arg3));
                     return false;
@@ -129,6 +131,10 @@ public class TimerCommand implements CommandExecutor, TabCompleter {
             if (arg2.isEmpty()) {
                 sender.sendMessage("You have to enter a time like \"1h 30m\".");
                 return false;
+            }
+            if (!timer.mayRun()) {
+                sender.sendMessage("Timer is locked. Reset with \"/timer reset\".");
+                return true;
             }
             for (String timeArg : Arrays.copyOfRange(args, 1, args.length)) {
                 if (!timeArg.matches("^[0-9]+[smhdy]$")) {
@@ -177,7 +183,7 @@ public class TimerCommand implements CommandExecutor, TabCompleter {
         } else if (args.length == 3) {
             if (args[1].equalsIgnoreCase("color")) {
                 List<String> colorArgs = Arrays.asList(
-                        "black", "dark_gray", "gray", "white", "red", "gold", "yellow", "green",
+                        "black", "dark_gray", "gray", "white", "red", "gold", "yellow", "lime",
                         "aqua", "blue", "dark_red", "dark_green", "dark_blue", "dark_aqua",
                         "dark_purple", "light_purple", "#"
                 );
