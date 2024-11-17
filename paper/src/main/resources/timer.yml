@@ -5,7 +5,7 @@ time:
   seconds: 0
 state:
   initialized: false
-  statusIndex: 0
+  statusindex: 0
   style:
     color:
       red: 255
@@ -16,9 +16,6 @@ state:
     underlined: false
 settings:
   upward: true
-  # when should the timer pause etc.?
-  # when should the timer start etc.?
-  # what should the timer do?
 
 defaults:
   time:
@@ -36,5 +33,3 @@ defaults:
     underlined: false
     settings:
       upward: true
-
-
