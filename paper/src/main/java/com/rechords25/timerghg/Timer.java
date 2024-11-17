@@ -210,7 +210,7 @@ public class Timer {
                 green = 255;
                 blue = 85;
                 break;
-            case "green":
+            case "lime":
                 red = 85;
                 green = 255;
                 blue = 85;
