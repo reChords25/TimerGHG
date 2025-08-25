@@ -13,6 +13,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.configuration.file.FileConfiguration;
 
 import java.time.Duration;
+import java.util.Collection;
 
 
 public class Timer {
@@ -20,6 +21,8 @@ public class Timer {
     private final TimerGHG plugin;
     // Config reference
     private final FileConfiguration config;
+    // Players to send the timer to
+    Collection<? extends org.bukkit.entity.Player> players;
 
     // Time and status for the action bar
     private Duration time;
@@ -43,9 +46,10 @@ public class Timer {
      * @param plugin the parent plugin of type {@link TimerGHG}
      * @param config the configuration for the timer
      */
-    public Timer(TimerGHG plugin, FileConfiguration config) {
+    public Timer(TimerGHG plugin, FileConfiguration config, Collection<? extends org.bukkit.entity.Player> players) {
         this.plugin = plugin;
         this.config = config;
+        this.players = players;
         this.style = Style.empty();
         this.time = Duration.ZERO;
     }
@@ -378,14 +382,14 @@ public class Timer {
      * Sends the time to the action bar with the current time, status and style
      */
     private void sendTime() {
-        sendActionBar(Component.text(getTimeString() + " " + status).style(style));
+        sendActionBar(Component.text((getTimeString() + " " + status).strip()).style(style));
     }
 
     /**
      * Sends the action bar to the selected players
      */
     private void sendActionBar(Component content) {
-        for (Player player : Bukkit.getOnlinePlayers()) {
+        for (Player player : players) {
             Audience audience = plugin.getServer().getPlayer(player.getUniqueId());
             assert audience != null;
             audience.sendActionBar(content);
@@ -529,6 +533,10 @@ public class Timer {
      */
     public boolean mayRun() {
         return statusIndex != 2 && statusIndex != 3;
+    }
+
+    public boolean isRunning() {
+        return statusIndex == 0;
     }
 }
 

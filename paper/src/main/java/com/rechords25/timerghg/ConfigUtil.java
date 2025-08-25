@@ -66,7 +66,6 @@ public class ConfigUtil {
      * @return config the configuration object
      */
     public FileConfiguration getConfig() {
-        this.config = YamlConfiguration.loadConfiguration(this.file);
         return this.config;
     }
 }
